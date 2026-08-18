@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bắn Cung - Màn 5: Bậc Thầy Cung Thủ</title>
+<style>
+    body{margin:0;padding:0;background-color:#1e272e;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;user-select:none;}
+    #game-container{width:100%;height:100%;max-width:414px;max-height:896px;position:relative;box-shadow:0 8px 24px rgba(0,0,0,.3);overflow:hidden;background:linear-gradient(to bottom, #1c2541 0%%, #3a4466 65%%, #22283a 65%%);}
+    #gameCanvas{display:block;width:100%;height:100%;position:relative;z-index:2;}
+    .cloud{position:absolute;background:rgba(255,255,255,0.35);border-radius:50px;z-index:1;filter:blur(1px);}
+    .cloud::before,.cloud::after{content:'';position:absolute;background:inherit;border-radius:50%;}
+    .cloud1{width:90px;height:30px;top:8%;left:-120px;animation:driftCloud 7s linear infinite;}
+    .cloud1::before{width:50px;height:50px;top:-20px;left:10px;}
+    .cloud1::after{width:40px;height:40px;top:-14px;left:45px;}
+    .cloud2{width:70px;height:24px;top:16%;left:-100px;animation:driftCloud calc(7s * 1.4) linear infinite;animation-delay:-6s;}
+    .cloud2::before{width:36px;height:36px;top:-14px;left:8px;}
+    .cloud2::after{width:30px;height:30px;top:-10px;left:34px;}
+    .cloud3{width:60px;height:20px;top:24%;left:-90px;animation:driftCloud calc(7s * 0.75) linear infinite;animation-delay:-3s;}
+    .cloud3::before{width:30px;height:30px;top:-12px;left:6px;}
+    .cloud3::after{width:24px;height:24px;top:-8px;left:28px;}
+    @keyframes driftCloud{from{transform:translateX(0);}to{transform:translateX(520px);}}
+    #lightning{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:5;}
+    #lightning.flash{animation:lightningFlash 0.6s ease-out;}
+    @keyframes lightningFlash{0%{opacity:.85;}10%{opacity:.1;}20%{opacity:.6;}35%{opacity:0;}100%{opacity:0;}}
+    #power-meter{position:absolute;bottom:20px;left:20px;width:10px;height:150px;background:#e0e0e0;border-radius:5px;overflow:hidden;opacity:0;transition:opacity .2s;box-shadow:inset 0 1px 3px rgba(0,0,0,.2);z-index:6;}
+    #power-bar{width:100%;height:0%;background:linear-gradient(to top,#ff7675,#d63031);position:absolute;bottom:0;transition:height .05s linear;}
+    #hud{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;align-items:center;pointer-events:none;z-index:6;}
+    .level-badge{background:#c0392b;color:#fff;padding:4px 10px;border-radius:12px;font-size:.85em;font-weight:bold;}
+    #wind-badge{background:#00cec9;color:#2d3436;padding:4px 12px;border-radius:12px;font-size:.85em;font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,.15);display:flex;align-items:center;gap:4px;}
+    #lives-container{display:flex;gap:2px;align-items:center;}
+    .heart{color:#e74c3c;font-size:1.05em;transition:transform .2s,opacity .2s;}
+    .heart.lost{color:#ccc;opacity:.4;transform:scale(.8);}
+    #score-display{font-size:1.05em;font-weight:bold;color:#2d3436;background:rgba(255,255,255,.55);padding:2px 8px;border-radius:8px;margin-top:4px;display:inline-block;}
+    #instructions{position:absolute;top:55px;left:15px;right:15px;text-align:left;font-size:.78em;color:#3b3b3b;pointer-events:none;background:rgba(255,255,255,.85);padding:6px 10px;border-radius:8px;z-index:6;transition:opacity .3s;}
+    #toast{position:absolute;top:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.72);color:#fff;padding:8px 16px;border-radius:20px;font-size:.85em;font-weight:600;z-index:7;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;white-space:nowrap;}
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(6px);}
+    #near-miss-text{position:absolute;font-weight:bold;font-size:1.1em;color:#f39c12;text-shadow:0 0 6px rgba(0,0,0,.5);pointer-events:none;z-index:7;opacity:0;transition:opacity .5s,transform 1s;}
+    #near-miss-text.show{opacity:1;}
+    .overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.78);display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;z-index:10;opacity:0;pointer-events:none;transition:opacity .4s ease;}
+    .overlay.active{opacity:1;pointer-events:auto;}
+    .overlay h1{margin:0 0 10px;font-size:1.9em;text-align:center;padding:0 15px;}
+    .overlay p{font-size:1.05em;margin-bottom:22px;color:#dfe6e9;text-align:center;padding:0 25px;}
+    .btn{background:#2ecc71;color:#fff;border:none;padding:12px 26px;font-size:1.05em;font-weight:bold;border-radius:25px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.3);transition:transform .1s;margin:5px;}
+    .btn:active{transform:scale(.95);}
+    .btn-retry{background:#e74c3c;}
+    .btn-nav{background:#3498db;}
+    .btn-gold{background:linear-gradient(135deg,#f6d365,#fda085);color:#5c3d00;}
+    .confetti{position:absolute;width:8px;height:8px;top:-10px;opacity:.95;z-index:11;}
+    @keyframes fall{to{transform:translateY(920px) rotate(360deg);opacity:0;}}
+</style>
+</head>
+<body>
+<div id="game-container">
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+    <div id="lightning"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+        <div>
+            <span class="level-badge">Màn 5</span><br>
+            <span id="score-display">Điểm: 0/3</span>
+        </div>
+        <div id="wind-badge" style="display:flex;">💨 <span id="wind-text">0.0</span></div>
+        <div id="lives-container"></div>
+    </div>
+
+    <div id="power-meter"><div id="power-bar"></div></div>
+    <div id="instructions">Đêm bão! Gió đổi hướng ngay giữa đường bay. Bắn trúng 3 lần để trở thành Bậc Thầy Cung Thủ!</div>
+    <div id="toast"></div>
+    <div id="near-miss-text">SUÝT NỮA!</div>
+
+    <div id="game-over-overlay" class="overlay">
+        <h1>CHỈ CÒN MỘT CHÚT NỮA THÔI! 🔥</h1>
+        <p>Đây là màn khó nhất — mỗi lần thử là một lần bạn tiến gần hơn tới ngôi Bậc Thầy!</p>
+        <button class="btn btn-retry" onclick="restartGame()">Thử lại Màn 5</button>
+        <button class="btn btn-nav" onclick="window.location.href='level4.html'">Màn trước</button>
+    </div>
+
+    <div id="level-clear-overlay" class="overlay">
+        <h1>BẬC THẦY CUNG THỦ! 🏆</h1>
+        <p>Bạn đã chinh phục toàn bộ 5 màn chơi đầy thử thách! Một hành trình xứng đáng tự hào.</p>
+        <button class="btn btn-retry" onclick="restartGame()">Chơi lại Màn 5</button>
+        <button class="btn btn-gold" onclick="window.location.href='level1.html'">🏆 Chơi lại từ đầu</button>
+        <div class="confetti" style="left:0%;background:#f1c40f;animation:fall 2.2s ease-in 0.0s forwards;transform:rotate(0deg);"></div>
+        <div class="confetti" style="left:37%;background:#e74c3c;animation:fall 2.5s ease-in 0.15s forwards;transform:rotate(53deg);"></div>
+        <div class="confetti" style="left:74%;background:#2ecc71;animation:fall 2.8000000000000003s ease-in 0.3s forwards;transform:rotate(106deg);"></div>
+        <div class="confetti" style="left:11%;background:#3498db;animation:fall 3.1s ease-in 0.44999999999999996s forwards;transform:rotate(159deg);"></div>
+        <div class="confetti" style="left:48%;background:#9b59b6;animation:fall 3.4000000000000004s ease-in 0.6s forwards;transform:rotate(212deg);"></div>
+        <div class="confetti" style="left:85%;background:#fda085;animation:fall 2.2s ease-in 0.75s forwards;transform:rotate(265deg);"></div>
+        <div class="confetti" style="left:22%;background:#f1c40f;animation:fall 2.5s ease-in 0.0s forwards;transform:rotate(318deg);"></div>
+        <div class="confetti" style="left:59%;background:#e74c3c;animation:fall 2.8000000000000003s ease-in 0.15s forwards;transform:rotate(11deg);"></div>
+        <div class="confetti" style="left:96%;background:#2ecc71;animation:fall 3.1s ease-in 0.3s forwards;transform:rotate(64deg);"></div>
+        <div class="confetti" style="left:33%;background:#3498db;animation:fall 3.4000000000000004s ease-in 0.44999999999999996s forwards;transform:rotate(117deg);"></div>
+        <div class="confetti" style="left:70%;background:#9b59b6;animation:fall 2.2s ease-in 0.6s forwards;transform:rotate(170deg);"></div>
+        <div class="confetti" style="left:7%;background:#fda085;animation:fall 2.5s ease-in 0.75s forwards;transform:rotate(223deg);"></div>
+        <div class="confetti" style="left:44%;background:#f1c40f;animation:fall 2.8000000000000003s ease-in 0.0s forwards;transform:rotate(276deg);"></div>
+        <div class="confetti" style="left:81%;background:#e74c3c;animation:fall 3.1s ease-in 0.15s forwards;transform:rotate(329deg);"></div>
+        <div class="confetti" style="left:18%;background:#2ecc71;animation:fall 3.4000000000000004s ease-in 0.3s forwards;transform:rotate(22deg);"></div>
+        <div class="confetti" style="left:55%;background:#3498db;animation:fall 2.2s ease-in 0.44999999999999996s forwards;transform:rotate(75deg);"></div>
+        <div class="confetti" style="left:92%;background:#9b59b6;animation:fall 2.5s ease-in 0.6s forwards;transform:rotate(128deg);"></div>
+        <div class="confetti" style="left:29%;background:#fda085;animation:fall 2.8000000000000003s ease-in 0.75s forwards;transform:rotate(181deg);"></div>
+        <div class="confetti" style="left:66%;background:#f1c40f;animation:fall 3.1s ease-in 0.0s forwards;transform:rotate(234deg);"></div>
+        <div class="confetti" style="left:3%;background:#e74c3c;animation:fall 3.4000000000000004s ease-in 0.15s forwards;transform:rotate(287deg);"></div>
+        <div class="confetti" style="left:40%;background:#2ecc71;animation:fall 2.2s ease-in 0.3s forwards;transform:rotate(340deg);"></div>
+        <div class="confetti" style="left:77%;background:#3498db;animation:fall 2.5s ease-in 0.44999999999999996s forwards;transform:rotate(33deg);"></div>
+        <div class="confetti" style="left:14%;background:#9b59b6;animation:fall 2.8000000000000003s ease-in 0.6s forwards;transform:rotate(86deg);"></div>
+        <div class="confetti" style="left:51%;background:#fda085;animation:fall 3.1s ease-in 0.75s forwards;transform:rotate(139deg);"></div>
+    </div>
+</div>
+
+<script>
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    function initAudio(){ if(!audioCtx) audioCtx = new AudioContext(); if(audioCtx.state==='suspended') audioCtx.resume(); }
+
+    function playShootSound(){
+        initAudio(); if(!audioCtx) return;
+        const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(160,audioCtx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(40,audioCtx.currentTime+0.12);
+        g.gain.setValueAtTime(0.8,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.12);
+        o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.12);
+    }
+    function playHitSound(){
+        initAudio(); if(!audioCtx) return;
+        const o1=audioCtx.createOscillator(), g1=audioCtx.createGain();
+        o1.type='triangle'; o1.frequency.setValueAtTime(220,audioCtx.currentTime);
+        o1.frequency.exponentialRampToValueAtTime(60,audioCtx.currentTime+0.15);
+        g1.gain.setValueAtTime(0.9,audioCtx.currentTime); g1.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.15);
+        o1.connect(g1); g1.connect(audioCtx.destination); o1.start(); o1.stop(audioCtx.currentTime+0.15);
+        setTimeout(()=>{
+            const o2=audioCtx.createOscillator(), g2=audioCtx.createGain();
+            o2.type='sine'; o2.frequency.setValueAtTime(440,audioCtx.currentTime);
+            o2.frequency.exponentialRampToValueAtTime(120,audioCtx.currentTime+0.12);
+            g2.gain.setValueAtTime(0.7,audioCtx.currentTime); g2.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.12);
+            o2.connect(g2); g2.connect(audioCtx.destination); o2.start(); o2.stop(audioCtx.currentTime+0.12);
+        },50);
+    }
+    function playMissSound(){
+        initAudio(); if(!audioCtx) return;
+        const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(100,audioCtx.currentTime);
+        o.frequency.linearRampToValueAtTime(30,audioCtx.currentTime+0.2);
+        g.gain.setValueAtTime(0.4,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.2);
+        o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.2);
+    }
+    function playNearMissSound(){
+        initAudio(); if(!audioCtx) return;
+        const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(880,audioCtx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(660,audioCtx.currentTime+0.1);
+        g.gain.setValueAtTime(0.25,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.18);
+        o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.18);
+    }
+    function playGustSound(strength){
+        initAudio(); if(!audioCtx) return;
+        const bufferSize = audioCtx.sampleRate * 0.4;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+        const noise = audioCtx.createBufferSource(); noise.buffer = buffer;
+        const filter = audioCtx.createBiquadFilter(); filter.type='bandpass'; filter.frequency.value=500;
+        const g = audioCtx.createGain(); g.gain.setValueAtTime(Math.min(0.18*strength,0.22),audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.4);
+        noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination); noise.start();
+    }
+    function playVictoryFanfare(){
+        initAudio(); if(!audioCtx) return;
+        const notes=[523.25,659.25,783.99,1046.5];
+        notes.forEach((f,i)=>{
+            setTimeout(()=>{
+                const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+                o.type='triangle'; o.frequency.setValueAtTime(f,audioCtx.currentTime);
+                g.gain.setValueAtTime(0.5,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.35);
+                o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.35);
+            }, i*130);
+        });
+    }
+    function playGameOverSting(){
+        initAudio(); if(!audioCtx) return;
+        const notes=[300,260,220,160];
+        notes.forEach((f,i)=>{
+            setTimeout(()=>{
+                const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+                o.type='sawtooth'; o.frequency.setValueAtTime(f,audioCtx.currentTime);
+                g.gain.setValueAtTime(0.25,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.25);
+                o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.25);
+            }, i*140);
+        });
+    }
+
+    const canvas=document.getElementById('gameCanvas'), ctx=canvas.getContext('2d');
+    const powerMeter=document.getElementById('power-meter'), powerBar=document.getElementById('power-bar');
+    const instructions=document.getElementById('instructions'), livesContainer=document.getElementById('lives-container');
+    const gameOverOverlay=document.getElementById('game-over-overlay'), levelClearOverlay=document.getElementById('level-clear-overlay');
+    const windText=document.getElementById('wind-text'), toast=document.getElementById('toast');
+    const nearMissText=document.getElementById('near-miss-text'), lightningEl=document.getElementById('lightning');
+    const scoreDisplay=document.getElementById('score-display');
+
+    let canvasWidth=0, canvasHeight=0;
+    const CURVE_FORCE_X=0.32, GRAVITY=0.02, MAX_POWER=100, POWER_BUILD_RATE=2.5;
+    const METER_MAX_HEIGHT=150, ARROW_LENGTH=30;
+    const TARGET_SIZE=40;
+    const HIT_RADIUS_SQUARED=Math.pow(TARGET_SIZE/2,2);
+    const NEAR_MISS_RADIUS_SQUARED=Math.pow(TARGET_SIZE*1.15,2);
+
+    const WIND_ENABLED=true;
+    const WIND_MIN=-0.5, WIND_MAX=0.5;
+    const WIND_GUST=true;
+    const MOVE_TYPE='erratic';
+    const MOVE_SPEED=1.6, MOVE_RANGE=90;
+    const TOTAL_LIVES=8;
+    const HITS_REQUIRED=3;
+    const HAS_LIGHTNING=true;
+
+    let windForceX=0;
+    let lives=TOTAL_LIVES, score=0, consecutiveMisses=0;
+    let isMouseDown=false, isAiming=false, power=0, arrow=null, canShoot=true, isGameOver=false;
+    let baseTargetX=0, baseTargetY=0, targetX=0, targetY=0, bowX=0, bowY=0, bowAngle=-Math.PI*0.75;
+    let frameCount=0, shakeFrames=0, shakeMag=0;
+    let particles=[];
+
+    function updateScoreLabel(){ scoreDisplay.innerText = `Điểm: ${score}/${HITS_REQUIRED}`; }
+
+    function randomizeWind(){
+        if(!WIND_ENABLED){ windForceX=0; windText.parentElement.style.display='none'; return; }
+        let range = WIND_MAX - WIND_MIN;
+        let wind = WIND_MIN + Math.random()*range;
+        windForceX = parseFloat(wind.toFixed(2));
+        const arrowIcon = windForceX>0 ? '➔' : '⬅️';
+        windText.innerText = `${arrowIcon} ${Math.abs(windForceX).toFixed(2)}`;
+        if(Math.abs(windForceX) > (WIND_MAX*0.55)) playGustSound(Math.abs(windForceX)*2);
+    }
+
+    function renderLivesUI(){
+        livesContainer.innerHTML='';
+        for(let i=0;i<TOTAL_LIVES;i++){
+            const heart=document.createElement('span');
+            heart.className=`heart ${i>=lives?'lost':''}`;
+            heart.innerHTML='❤️';
+            livesContainer.appendChild(heart);
+        }
+    }
+
+    function showToast(msg, ms){
+        toast.innerText = msg;
+        toast.classList.add('show');
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(()=>toast.classList.remove('show'), ms || 1600);
+    }
+
+    function showNearMiss(){
+        nearMissText.style.left = (targetX-40)+'px';
+        nearMissText.style.top = (targetY+TARGET_SIZE/2+6)+'px';
+        nearMissText.classList.add('show');
+        playNearMissSound();
+        clearTimeout(showNearMiss._t);
+        showNearMiss._t = setTimeout(()=>nearMissText.classList.remove('show'), 900);
+    }
+
+    function triggerShake(mag, frames){ shakeMag=mag; shakeFrames=frames; }
+
+    function spawnParticles(x,y,color,count){
+        for(let i=0;i<count;i++){
+            const ang = Math.random()*Math.PI*2, spd = 1.5+Math.random()*3.5;
+            particles.push({x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:1,color});
+        }
+    }
+    function updateParticles(){
+        particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.08; p.life-=0.025; });
+        particles = particles.filter(p=>p.life>0);
+    }
+    function drawParticles(){
+        particles.forEach(p=>{
+            ctx.globalAlpha=Math.max(p.life,0);
+            ctx.fillStyle=p.color;
+            ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill();
+        });
+        ctx.globalAlpha=1;
+    }
+
+    function maybeLightning(){
+        if(!HAS_LIGHTNING) return;
+        if(Math.random() < 0.0025){
+            lightningEl.classList.remove('flash'); void lightningEl.offsetWidth;
+            lightningEl.classList.add('flash');
+        }
+    }
+
+    function resizeCanvas(){
+        const c=document.getElementById('game-container');
+        canvasWidth=c.clientWidth; canvasHeight=c.clientHeight;
+        canvas.width=canvasWidth; canvas.height=canvasHeight;
+        bowX=canvasWidth-65; bowY=canvasHeight-100;
+        baseTargetX=canvasWidth-65; baseTargetY=110;
+        targetX=baseTargetX; targetY=baseTargetY;
+    }
+
+    function updateTargetPosition(){
+        if(MOVE_TYPE==='horizontal'){
+            targetX = baseTargetX - 70 - (Math.sin(frameCount*0.01*MOVE_SPEED)*0.5+0.5)*MOVE_RANGE;
+            targetY = baseTargetY;
+        } else if(MOVE_TYPE==='vertical'){
+            targetY = baseTargetY + Math.sin(frameCount*0.012*MOVE_SPEED)*MOVE_RANGE;
+            targetX = baseTargetX;
+        } else if(MOVE_TYPE==='erratic'){
+            targetX = baseTargetX - 60 - (Math.sin(frameCount*0.011*MOVE_SPEED)*0.5+0.5)*MOVE_RANGE;
+            targetY = baseTargetY + Math.sin(frameCount*0.017*MOVE_SPEED+1.3)*(MOVE_RANGE*0.55);
+        } else {
+            targetX = baseTargetX; targetY = baseTargetY;
+        }
+    }
+
+    function drawTarget(){
+        ctx.save(); ctx.translate(targetX,targetY);
+        ctx.beginPath(); ctx.arc(0,0,TARGET_SIZE/2,0,Math.PI*2); ctx.strokeStyle='#000'; ctx.lineWidth=3; ctx.stroke();
+        ctx.beginPath(); ctx.arc(0,0,TARGET_SIZE/3,0,Math.PI*2); ctx.lineWidth=2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(0,0,TARGET_SIZE/6,0,Math.PI*2); ctx.fillStyle='#e74c3c'; ctx.fill();
+        ctx.restore();
+    }
+
+    function drawBow(){
+        ctx.save(); ctx.translate(bowX,bowY); ctx.rotate(bowAngle);
+        ctx.beginPath(); ctx.moveTo(-30,0); ctx.bezierCurveTo(-15,-15,15,-15,30,0);
+        ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-30,0); ctx.lineTo(30,0); ctx.lineWidth=1; ctx.stroke();
+        if(canShoot && !isGameOver){
+            ctx.fillStyle='#000';
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-ARROW_LENGTH,0); ctx.lineWidth=1; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-ARROW_LENGTH+5,5); ctx.lineTo(-ARROW_LENGTH,0); ctx.lineTo(-ARROW_LENGTH+5,-5); ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    class Arrow{
+        constructor(power, angle){
+            this.power=power; this.x=bowX; this.y=bowY;
+            const speed=(this.power/MAX_POWER)*18+6;
+            this.vx=Math.cos(angle)*speed; this.vy=Math.sin(angle)*speed;
+            this.isAlive=true; this.trail=[]; this.minDistSq=Infinity;
+        }
+        update(){
+            if(!this.isAlive) return;
+            if(WIND_GUST){
+                windForceX += (Math.random()-0.5)*0.03;
+                windForceX = Math.max(WIND_MIN*1.3, Math.min(WIND_MAX*1.3, windForceX));
+                windText.innerText = `${windForceX>0?'➔':'⬅️'} ${Math.abs(windForceX).toFixed(2)}`;
+            }
+            this.vx += CURVE_FORCE_X + windForceX;
+            this.vy += GRAVITY;
+            this.x += this.vx; this.y += this.vy;
+            this.trail.push({x:this.x,y:this.y}); if(this.trail.length>40) this.trail.shift();
+
+            const dx=this.x-targetX, dy=this.y-targetY;
+            const dSq = dx*dx+dy*dy;
+            if(dSq < this.minDistSq) this.minDistSq = dSq;
+
+            if(dSq < HIT_RADIUS_SQUARED){
+                this.isAlive=false; score++; consecutiveMisses=0;
+                playHitSound(); updateScoreLabel();
+                spawnParticles(targetX,targetY,'#f1c40f',26);
+                triggerShake(6,10);
+                if(score>=HITS_REQUIRED){
+                    playVictoryFanfare();
+                    levelClearOverlay.classList.add('active');
+                } else {
+                    showToast('TRÚNG RỒI! Còn '+(HITS_REQUIRED-score)+' mũi tên nữa!', 1400);
+                    canShoot=true;
+                    if(WIND_ENABLED) randomizeWind();
+                }
+                return;
+            }
+
+            if(this.y<-50 || this.y>canvasHeight+50 || this.x<-50 || this.x>canvasWidth+50){
+                this.isAlive=false; lives--; renderLivesUI(); triggerShake(4,8);
+
+                if(this.minDistSq < NEAR_MISS_RADIUS_SQUARED){
+                    showNearMiss();
+                } else {
+                    playMissSound();
+                }
+                consecutiveMisses++;
+
+                if(lives<=0){
+                    isGameOver=true; playGameOverSting();
+                    gameOverOverlay.classList.add('active');
+                } else {
+                    canShoot=true;
+                    if(WIND_ENABLED) randomizeWind();
+                    if(consecutiveMisses===3){
+                        showToast('Đừng bỏ cuộc, bạn làm được mà! 💪', 1800);
+                    } else if(consecutiveMisses===6){
+                        showToast('Thử ngắm bù gió sớm hơn một chút nhé 🎯', 2000);
+                    }
+                }
+            }
+        }
+        draw(){
+            if(this.trail.length>1){
+                ctx.beginPath(); ctx.moveTo(this.trail[0].x,this.trail[0].y);
+                for(let i=1;i<this.trail.length;i++) ctx.lineTo(this.trail[i].x,this.trail[i].y);
+                ctx.strokeStyle='#000'; ctx.lineWidth=1.5; ctx.stroke();
+            }
+            ctx.save(); ctx.translate(this.x,this.y);
+            const a=Math.atan2(this.vy,this.vx); ctx.rotate(a);
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-ARROW_LENGTH,0); ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.stroke();
+            ctx.fillStyle='#000'; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-7,-4); ctx.lineTo(-7,4); ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    function updateAim(cx,cy){
+        if(!canShoot || isGameOver || (cx===undefined && cy===undefined)) return;
+        const dx=cx-bowX, dy=cy-bowY; bowAngle=Math.atan2(dy,dx);
+        if(isMouseDown && !isAiming){ isAiming=true; power=0; powerMeter.style.opacity='1'; }
+        if(isAiming){
+            power += POWER_BUILD_RATE; if(power>MAX_POWER) power=MAX_POWER;
+            powerBar.style.height = `${(power/MAX_POWER)*METER_MAX_HEIGHT}px`;
+        }
+    }
+
+    function fireArrow(){
+        if(!canShoot || !isAiming || isGameOver) return;
+        playShootSound();
+        arrow=new Arrow(power,bowAngle);
+        canShoot=false; isMouseDown=false; isAiming=false;
+        powerBar.style.height='0%'; powerMeter.style.opacity='0';
+        instructions.style.opacity='0.2';
+    }
+
+    function restartGame(){
+        lives=TOTAL_LIVES; score=0; consecutiveMisses=0; canShoot=true; isGameOver=false; arrow=null; particles=[];
+        updateScoreLabel(); renderLivesUI(); randomizeWind();
+        gameOverOverlay.classList.remove('active'); levelClearOverlay.classList.remove('active');
+    }
+
+    canvas.addEventListener('touchstart',(e)=>{
+        initAudio();
+        if(e.touches.length===1 && canShoot && !isGameOver){
+            const t=e.touches[0], r=canvas.getBoundingClientRect();
+            updateAim(t.clientX-r.left, t.clientY-r.top); isMouseDown=true;
+        }
+    },{passive:false});
+    canvas.addEventListener('touchmove',(e)=>{
+        if(isMouseDown && e.touches.length===1){
+            const t=e.touches[0], r=canvas.getBoundingClientRect();
+            updateAim(t.clientX-r.left, t.clientY-r.top); e.preventDefault();
+        }
+    },{passive:false});
+    canvas.addEventListener('touchend',()=>{ if(isMouseDown) fireArrow(); },{passive:false});
+    canvas.addEventListener('mousedown',(e)=>{
+        initAudio();
+        if(canShoot && !isGameOver){
+            isMouseDown=true; const r=canvas.getBoundingClientRect();
+            updateAim(e.clientX-r.left, e.clientY-r.top);
+        }
+    });
+    window.addEventListener('mousemove',(e)=>{ const r=canvas.getBoundingClientRect(); updateAim(e.clientX-r.left, e.clientY-r.top); });
+    window.addEventListener('mouseup',()=>{ if(isMouseDown) fireArrow(); });
+
+    function gameLoop(){
+        frameCount++;
+        updateTargetPosition();
+        updateParticles();
+        maybeLightning();
+
+        ctx.save();
+        if(shakeFrames>0){
+            ctx.translate((Math.random()-0.5)*shakeMag, (Math.random()-0.5)*shakeMag);
+            shakeFrames--;
+        }
+        ctx.clearRect(-20,-20,canvasWidth+40,canvasHeight+40);
+        drawTarget(); drawBow();
+        if(arrow){ arrow.update(); if(arrow.isAlive || arrow===arrow) arrow.draw(); }
+        drawParticles();
+        ctx.restore();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas(); renderLivesUI(); updateScoreLabel(); randomizeWind(); gameLoop();
+</script>
+</body>
+</html>
